@@ -1,0 +1,15 @@
+server:
+  host:
+  port:
+database:
+  driver: postgres
+  name: golearn
+  user: dev
+  pass: dev
+  host: localhost
+  port: 5432
+auth:
+  client_id:
+  client_secret:
+  callback_url:
+  discovery_endpoint:

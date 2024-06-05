@@ -1,60 +1,57 @@
-# Simple Makefile for a Go project
+include scripts/common.mk
 
-# Build the application
-all: build
+dc-up: ## Docker compose up
+	@docker compose up -d
 
-build:
-	@echo "Building..."
-	
+dc-down: ## Docker compose down
+	@docker compose down
+
+mig-new: ## Create migration script, required name=<example>
+ifdef name
+	@goose -v create $(name) sql
+endif
+
+mig-up: ## Migrate up
+	@goose -v up
+
+mig-down: ## Migrate down
+	@goose -v down
+
+mig-ver: ## Show current migration version
+	@goose -v version
+	@goose -v status
+
+gen-query: ## Generate queries
+	@sqlc generate
+
+gen-mock: ## Generate mocks
+	@mockgen -package mockdb -destination db/mock/store.go github.com/hieulw/gobank/db/sqlc Store
+
+psql: ## Access to postgres database
+	@docker compose exec -it postgres psql -U ${DB_USERNAME} -d ${DB_DATABASE}
+
+clean: ## Clean cache, coverage, build outputs
+	@rm -f **/**.out # clean output files
+	@rm -f main
+	@go clean -cache -testcache
+	@go mod tidy
+
+lint: ## Run lint
+	@golangci-lint run -v
+
+build: ## Build application
 	@go build -o main cmd/api/main.go
 
-# Run the application
-run:
+run: ## Run the application
 	@go run cmd/api/main.go
 
-# Create DB container
-docker-run:
-	@if docker compose up 2>/dev/null; then \
-		: ; \
-	else \
-		echo "Falling back to Docker Compose V1"; \
-		docker-compose up; \
-	fi
+test: ## Test the application
+	@go test ./... -v -cover -race
 
-# Shutdown DB container
-docker-down:
-	@if docker compose down 2>/dev/null; then \
-		: ; \
-	else \
-		echo "Falling back to Docker Compose V1"; \
-		docker-compose down; \
-	fi
+watch: ## Live Reload
+	@$(CURDIR)/scripts/air.sh
 
-# Test the application
-test:
-	@echo "Testing..."
-	@go test ./tests -v
-
-# Clean the binary
-clean:
-	@echo "Cleaning..."
-	@rm -f main
-
-# Live Reload
-watch:
-	@if command -v air > /dev/null; then \
-	    air; \
-	    echo "Watching...";\
-	else \
-	    read -p "Go's 'air' is not installed on your machine. Do you want to install it? [Y/n] " choice; \
-	    if [ "$$choice" != "n" ] && [ "$$choice" != "N" ]; then \
-	        go install github.com/cosmtrek/air@latest; \
-	        air; \
-	        echo "Watching...";\
-	    else \
-	        echo "You chose not to install air. Exiting..."; \
-	        exit 1; \
-	    fi; \
-	fi
+hurl: ## Test API using hurl
+	@hurl --test ./hurls/*
 
 .PHONY: all build run test clean

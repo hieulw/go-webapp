@@ -5,12 +5,11 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
 	"strconv"
+	"ticket/internal/config"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	_ "github.com/joho/godotenv/autoload"
 )
 
 // Service represents a service that interacts with a database.
@@ -29,20 +28,23 @@ type service struct {
 }
 
 var (
-	database   = os.Getenv("DB_DATABASE")
-	password   = os.Getenv("DB_PASSWORD")
-	username   = os.Getenv("DB_USERNAME")
-	port       = os.Getenv("DB_PORT")
-	host       = os.Getenv("DB_HOST")
 	dbInstance *service
+	cfg        config.Config
 )
 
-func New() Service {
+func New(cfg config.Config) Service {
 	// Reuse Connection
 	if dbInstance != nil {
 		return dbInstance
 	}
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", username, password, host, port, database)
+	connStr := fmt.Sprintf(
+		"postgres://%s:%s@%s:%d/%s?sslmode=disable",
+		cfg.Database.User,
+		cfg.Database.Pass,
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.Name,
+	)
 	db, err := sql.Open("pgx", connStr)
 	if err != nil {
 		log.Fatal(err)
@@ -109,6 +111,6 @@ func (s *service) Health() map[string]string {
 // If the connection is successfully closed, it returns nil.
 // If an error occurs while closing the connection, it returns the error.
 func (s *service) Close() error {
-	log.Printf("Disconnected from database: %s", database)
+	log.Printf("Disconnected from database: %s", cfg.Database.Name)
 	return s.db.Close()
 }

@@ -2,38 +2,41 @@ package server
 
 import (
 	"fmt"
-	"net/http"
-	"os"
-	"strconv"
-	"time"
-
-	_ "github.com/joho/godotenv/autoload"
-
+	"ticket/internal/auth"
+	"ticket/internal/config"
 	"ticket/internal/database"
+
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
 )
 
 type Server struct {
-	port int
-
-	db database.Service
+	db     database.Service
+	router *echo.Echo
+	config config.Config
 }
 
-func NewServer() *http.Server {
-	port, _ := strconv.Atoi(os.Getenv("PORT"))
-	NewServer := &Server{
-		port: port,
-
-		db: database.New(),
+func NewServer() *Server {
+	cfg := config.New()
+	db := database.New(cfg)
+	server := &Server{
+		db:     db,
+		config: cfg,
+		router: echo.New(),
 	}
+	auth.New(cfg)
 
-	// Declare Server config
-	server := &http.Server{
-		Addr:         fmt.Sprintf(":%d", NewServer.port),
-		Handler:      NewServer.RegisterRoutes(),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
-	}
+	server.registerRoutes()
+	server.configServer()
 
 	return server
+}
+
+func (s *Server) Start() error {
+	return s.router.Start(fmt.Sprintf("%s:%d", s.config.Server.Host, s.config.Server.Port))
+}
+
+func (s *Server) configServer() {
+	s.router.HideBanner = true
+	s.router.Logger.SetLevel(log.WARN)
 }

@@ -7,16 +7,15 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-func (s *Server) RegisterRoutes() http.Handler {
-	e := echo.New()
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
+func (s *Server) registerRoutes() {
+	s.router.Use(middleware.Logger())
+	s.router.Use(middleware.Recover())
 
-	e.GET("/", s.HelloWorldHandler)
+	s.router.GET("/", s.HelloWorldHandler)
+	s.router.GET("/health", s.healthHandler)
 
-	e.GET("/health", s.healthHandler)
-
-	return e
+	s.router.GET("/auth/:provider", s.AuthRedirect)
+	s.router.GET("/auth/callback", s.AuthCallback)
 }
 
 func (s *Server) HelloWorldHandler(c echo.Context) error {

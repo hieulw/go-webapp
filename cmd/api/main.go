@@ -1,16 +1,14 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"ticket/internal/server"
 )
 
 func main() {
-
 	server := server.NewServer()
 
-	err := server.ListenAndServe()
-	if err != nil {
-		panic(fmt.Sprintf("cannot start server: %s", err))
+	if err := server.Start(); err != nil {
+		log.Fatalf("cannot start server: %s", err)
 	}
 }
